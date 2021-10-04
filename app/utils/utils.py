@@ -1,0 +1,85 @@
+import os
+from typing import List
+import aiofiles
+from fastapi import UploadFile
+from datetime import datetime
+import shutil
+
+from app.utils.mail import send_mail
+
+
+async def execute_multipart_emailing_service(files: List[UploadFile], request):
+    print("Email Request ==> ", request)
+    file_data = await save_uploaded_files_to_wkdir(files)
+    # try:
+    print("\n===================================")
+    print("Send Email Request to SES")
+    print("===================================")
+    # response = send_email_using_ses(request)
+    response = send_mail(sender=request['sender'],
+                         sender_name=request['sender_name'],
+                         recipients=request['recipient'],
+                         cc=request['cc'], bcc=request['bcc'],
+                         title=request['subject'],
+                         text=request['text'],
+                         body=request['body'],
+                         attachments=file_data['list_files'])
+
+    if response['status']:
+        request['message_id'] = response['message_id']
+        request['response'] = response['response']
+
+        '''
+        Add API key in response - to save together with the log in the database
+        '''
+        request['response']['api_key'] = request['api_key']
+
+        '''
+        Remove uploaded data
+        '''
+        remove_directory(file_data['path_to_folder'])
+        return {'status': True}
+    else:
+        '''
+        Remove uploaded data
+        '''
+        remove_directory(file_data['path_to_folder'])
+        request['message_id'] = response['message_id']
+        request['response'] = response['response']
+        request['response']['api_key'] = request['api_key']
+
+        print("Before save to log: SES Response => ", response)
+        print(response.keys())
+        print("Email Request: ", request)
+        return {'status': False}
+
+
+def get_datetime():
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+async def save_uploaded_files_to_wkdir(files):
+    print({"filenames": [file.filename for file in files]})
+    file_path = f"app/data/temp/upload_{get_datetime()}"
+    os.mkdir(file_path)
+
+    list_files = []
+    for file in files:
+        _file_name = os.path.join(file_path, file.filename)
+        print("File Name: ", _file_name)
+        async with aiofiles.open(_file_name, 'wb') as out_file:
+            content = await file.read()  # async read
+            await out_file.write(content)  # async write
+        list_files.append(_file_name)
+    return {
+        "path_to_folder": file_path,
+        "list_files": list_files,
+    }
+
+
+def remove_directory(path):
+    try:
+        shutil.rmtree(path)
+        print("Successfully cleaned uploaded files!")
+    except:
+        print("No files deleted.")

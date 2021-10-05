@@ -77,7 +77,7 @@ def send_mail(
                                        attachments)
 
         print("Sending Email to SES")
-        print(msg)
+        # print(msg)
 
         destinations = []
         destinations.extend(recipients)

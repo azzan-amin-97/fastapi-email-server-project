@@ -26,32 +26,19 @@ async def execute_multipart_emailing_service(files: List[UploadFile], request):
                          attachments=file_data['list_files'])
 
     if response['status']:
-        request['message_id'] = response['message_id']
-        request['response'] = response['response']
-
-        '''
-        Add API key in response - to save together with the log in the database
-        '''
-        request['response']['api_key'] = request['api_key']
 
         '''
         Remove uploaded data
         '''
         remove_directory(file_data['path_to_folder'])
-        return {'status': True}
+        return {'status': True, 'result': response}
+
     else:
         '''
         Remove uploaded data
         '''
         remove_directory(file_data['path_to_folder'])
-        request['message_id'] = response['message_id']
-        request['response'] = response['response']
-        request['response']['api_key'] = request['api_key']
-
-        print("Before save to log: SES Response => ", response)
-        print(response.keys())
-        print("Email Request: ", request)
-        return {'status': False}
+        return {'status': False,'result': response}
 
 
 def get_datetime():
@@ -71,6 +58,7 @@ async def save_uploaded_files_to_wkdir(files):
             content = await file.read()  # async read
             await out_file.write(content)  # async write
         list_files.append(_file_name)
+
     return {
         "path_to_folder": file_path,
         "list_files": list_files,

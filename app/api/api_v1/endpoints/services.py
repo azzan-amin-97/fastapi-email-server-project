@@ -12,7 +12,7 @@ router = APIRouter()
 async def sending_email_with_file_attachments(email_request: EmailRequest = Depends(EmailRequest.as_form),
                                                                     files: List[UploadFile] = File([])):
     """
-    Your Endpoint Description here
+    Send Multipart Email
     """
 
     email_request_dict = dict(email_request)

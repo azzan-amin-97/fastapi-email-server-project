@@ -15,7 +15,6 @@ async def execute_multipart_emailing_service(files: List[UploadFile], request):
     print("\n===================================")
     print("Send Email Request to SES")
     print("===================================")
-    # response = send_email_using_ses(request)
     response = send_mail(sender=request['sender'],
                          sender_name=request['sender_name'],
                          recipients=request['recipient'],
@@ -27,17 +26,11 @@ async def execute_multipart_emailing_service(files: List[UploadFile], request):
 
     if response['status']:
 
-        '''
-        Remove uploaded data
-        '''
-        remove_directory(file_data['path_to_folder'])
+        remove_directory(file_data['path_to_folder'])  # Remove uploaded data
         return {'status': True, 'result': response}
 
     else:
-        '''
-        Remove uploaded data
-        '''
-        remove_directory(file_data['path_to_folder'])
+        remove_directory(file_data['path_to_folder'])  # Remove uploaded data
         return {'status': False,'result': response}
 
 

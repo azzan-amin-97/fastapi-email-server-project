@@ -5,7 +5,11 @@ from fastapi import UploadFile
 from datetime import datetime
 import shutil
 
-from app.utils.mail import send_mail
+from app.utils.mail_utils import send_mail
+
+
+def get_datetime():
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 async def execute_multipart_emailing_service(files: List[UploadFile], request):
@@ -32,10 +36,6 @@ async def execute_multipart_emailing_service(files: List[UploadFile], request):
     else:
         remove_directory(file_data['path_to_folder'])  # Remove uploaded data
         return {'status': False,'result': response}
-
-
-def get_datetime():
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 async def save_uploaded_files_to_wkdir(files):

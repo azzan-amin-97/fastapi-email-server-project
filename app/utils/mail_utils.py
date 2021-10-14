@@ -13,69 +13,72 @@ CHARSET = "UTF-8"
 ses_client = boto3.client('ses', region_name='ap-southeast-1')
 
 
-def prepare_multipart_message(
+def create_email_multipart_message(
         sender: str, sender_name: str, recipients: list, cc: list, bcc: list, title: str, text: str=None, body: str=None, attachments: list=None)\
         -> MIMEMultipart:
     print("Processing...")
 
-    multipart_content_subtype = 'alternative' if text and body else 'mixed'
-    msg = MIMEMultipart(multipart_content_subtype)
-    msg['Subject'] = title
-
-    if sender_name is None:
-        msg['From'] = f"{sender}"
+    if text and body:
+        # assign subtype - multipart/alternative
+        content_subtype = 'alternative'
     else:
-        msg['From'] = f"{sender_name} <{sender}>"
+        # assign subtype - multipart/mixed
+        content_subtype = 'mixed'
 
-    msg['To'] = ', '.join(recipients)
-    msg['CC'] = ', '.join(cc)
-    msg['BCC'] = ', '.join(bcc)
+    # Instantiate a MIMEMultipart message object
+    message = MIMEMultipart(content_subtype)
+    message['Subject'] = title
 
-    # Record the MIME types of both parts - text/plain and text/html.
-    # According to RFC 2046, the last part of a multipart message, in this case the HTML message, is best and preferred.
+    # if sender_name is provided, the format will be 'Sender Name <email@example.com>'
+    if sender_name is None:
+        message['From'] = f"{sender}"
+    else:
+        message['From'] = f"{sender_name} <{sender}>"
+
+    message['To'] = ', '.join(recipients)
+    message['CC'] = ', '.join(cc)
+    message['BCC'] = ', '.join(bcc)
+
+    # Record the MIME types of both parts:
+    # text - defined as text/plain part
     if text:
         part = MIMEText(text, 'plain')
-        msg.attach(part)
+        message.attach(part)
+    # body - defined as text/html part
     if body:
         part = MIMEText(body, 'html')
-        msg.attach(part)
+        message.attach(part)
 
     # Add attachments
     for attachment in attachments or []:
         with open(attachment, 'rb') as f:
             part = MIMEApplication(f.read())
-            part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachment))
-            msg.attach(part)
+            part.add_header('Content-Disposition',
+                            'attachment',
+                            filename=os.path.basename(attachment))
+            message.attach(part)
+
     print("Multipart message creation done!")
-    return msg
+    return message
 
 
 def send_mail(
         sender: str, sender_name: str, recipients: list, cc: list, bcc: list, title: str, text: str=None, body: str=None, attachments: list=None) -> dict:
 
-    """
-    Send email to recipients. Sends one mail to all recipients.
-    The sender needs to be a verified email in SES.
-    """
-
     try:
-        print("Im in send_mail!")
         print("Creating multipart message...")
-        msg = prepare_multipart_message(sender, sender_name, recipients, cc, bcc, title, text, body,
-                                        attachments)
+        msg = create_email_multipart_message(sender, sender_name, recipients, cc, bcc, title, text, body,
+                                             attachments)
 
         print("Sending Email to SES")
         # print(msg)
 
+        # All emails in the requests including recipients, cc and bcc list need to be added in the destinations.
         destinations = []
         destinations.extend(recipients)
         destinations.extend(cc)
         destinations.extend(bcc)
-
-        response = ses_client.send_raw_email(
-            Source=sender,
-            Destinations=destinations,
-            RawMessage={'Data': msg.as_string()})
+        ses_response = ses_client.send_raw_email(Source=sender, Destinations=destinations, RawMessage={'Data': msg.as_string()})
 
     except ClientError as e:
         response = {"status": False, "message": e.response['Error']['Message'],
@@ -87,7 +90,7 @@ def send_mail(
     else:
         response = {"status": True,
                 "message": "Email Successfully Sent.",
-                "message_id": response['MessageId'],
-                "response": response}
+                "message_id": ses_response['MessageId'],
+                "response": ses_response}
 
         return response

@@ -14,6 +14,9 @@ async def sending_email_with_file_attachments(email_request: EmailRequest = Depe
     """
     Send Multipart Email
     """
+    # Pre-process the email request - clean the request received accordingly
     email_request_dict = preprocess_request(email_request)
+
     response = await execute_multipart_emailing_service(files, email_request_dict)
+
     return response['result']

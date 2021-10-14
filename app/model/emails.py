@@ -6,27 +6,26 @@ from pydantic import BaseModel
 
 
 def as_form(cls: Type[BaseModel]):
-    new_parameters = []
+    params = []
+    for attr_field_name, model_attr_field in cls.__fields__.items():
+        model_attr_field: ModelField  # type: ignore
 
-    for field_name, model_field in cls.__fields__.items():
-        model_field: ModelField  # type: ignore
-
-        if not model_field.required:
-            new_parameters.append(
+        if not model_attr_field.required:
+            params.append(
                 inspect.Parameter(
-                    model_field.alias,
+                    model_attr_field.alias,
                     inspect.Parameter.POSITIONAL_ONLY,
-                    default=Form(model_field.default),
-                    annotation=model_field.outer_type_,
+                    default=Form(model_attr_field.default),
+                    annotation=model_attr_field.outer_type_,
                 )
             )
         else:
-            new_parameters.append(
+            params.append(
                 inspect.Parameter(
-                    model_field.alias,
+                    model_attr_field.alias,
                     inspect.Parameter.POSITIONAL_ONLY,
                     default=Form(...),
-                    annotation=model_field.outer_type_,
+                    annotation=model_attr_field.outer_type_,
                 )
             )
 
@@ -34,7 +33,7 @@ def as_form(cls: Type[BaseModel]):
         return cls(**data)
 
     sig = inspect.signature(as_form_func)
-    sig = sig.replace(parameters=new_parameters)
+    sig = sig.replace(parameters=params)
     as_form_func.__signature__ = sig  # type: ignore
     setattr(cls, 'as_form', as_form_func)
     return cls

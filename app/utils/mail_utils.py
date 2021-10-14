@@ -13,23 +13,11 @@ CHARSET = "UTF-8"
 ses_client = boto3.client('ses', region_name='ap-southeast-1')
 
 
-def create_multipart_message(
+def prepare_multipart_message(
         sender: str, sender_name: str, recipients: list, cc: list, bcc: list, title: str, text: str=None, body: str=None, attachments: list=None)\
         -> MIMEMultipart:
     print("Processing...")
-    """
-    Creates a MIME multipart message object.
-    Uses only the Python `email` standard library.
-    Emails, both sender and recipients, can be just the email string or have the format 'The Name <the_email@host.com>'.
 
-    :param sender: The sender.
-    :param recipients: List of recipients. Needs to be a list, even if only one recipient.
-    :param title: The title of the email.
-    :param text: The text version of the email body (optional).
-    :param html: The html version of the email body (optional).
-    :param attachments: List of files to attach in the email.
-    :return: A `MIMEMultipart` to be used to send the email.
-    """
     multipart_content_subtype = 'alternative' if text and body else 'mixed'
     msg = MIMEMultipart(multipart_content_subtype)
     msg['Subject'] = title
@@ -73,8 +61,8 @@ def send_mail(
     try:
         print("Im in send_mail!")
         print("Creating multipart message...")
-        msg = create_multipart_message(sender, sender_name, recipients, cc, bcc, title, text, body,
-                                       attachments)
+        msg = prepare_multipart_message(sender, sender_name, recipients, cc, bcc, title, text, body,
+                                        attachments)
 
         print("Sending Email to SES")
         # print(msg)

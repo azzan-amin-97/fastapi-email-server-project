@@ -5,6 +5,7 @@ from fastapi import UploadFile
 from datetime import datetime
 import shutil
 
+from app.model.emails import EmailRequest
 from app.utils.mail_utils import send_mail
 
 
@@ -56,6 +57,20 @@ async def save_uploaded_files_to_wkdir(files):
         "path_to_folder": file_path,
         "list_files": list_files,
     }
+
+
+def preprocess_request(email_request: EmailRequest):
+    request = dict(email_request)
+    # Check if recipient is None Type or an Empty String
+    if not request['recipient'] or ((len(request['recipient']) == 1) and (request['recipient'][0] == '')):
+        request.update({'recipient': []})
+    # Check if cc is None Type or an Empty String
+    if not request['cc'] or ((len(request['cc']) == 1) and (request['cc'][0] == '')):
+        request.update({'cc': []})
+    # Check if bcc is None Type or an Empty String
+    if not request['bcc'] or ((len(request['bcc']) == 1) and (request['bcc'][0] == '')):
+        request.update({'bcc': []})
+    return request
 
 
 def remove_directory(path):

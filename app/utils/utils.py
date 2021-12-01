@@ -69,12 +69,21 @@ def preprocess_request(email_request: EmailRequest):
     # Check if recipient is None Type or an Empty String
     if not request['recipient'] or ((len(request['recipient']) == 1) and (request['recipient'][0] == '')):
         request.update({'recipient': []})
+    else:
+        request.update({'recipient': request['recipient'][0].split(',')})
+
     # Check if cc is None Type or an Empty String
     if not request['cc'] or ((len(request['cc']) == 1) and (request['cc'][0] == '')):
         request.update({'cc': []})
+    else:
+        request.update({'cc': request['cc'][0].split(',')})
+
     # Check if bcc is None Type or an Empty String
     if not request['bcc'] or ((len(request['bcc']) == 1) and (request['bcc'][0] == '')):
         request.update({'bcc': []})
+    else:
+        request.update({'bcc': request['bcc'][0].split(',')})
+
     return request
 
 

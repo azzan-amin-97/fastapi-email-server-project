@@ -36,7 +36,6 @@ async def execute_multipart_emailing_service(files: List[UploadFile], request):
     if response['status']:
         remove_directory(file_data['path_to_folder'])  # Remove uploaded data
         return {'status': True, 'result': response}
-
     else:
         remove_directory(file_data['path_to_folder'])  # Remove uploaded data
         return {'status': False,'result': response}

@@ -12,11 +12,6 @@ phases:
     commands:
       - echo docker version
       - docker -v
-      - apt-get install wget apt-transport-https gnupg
-      - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-      - echo deb https://aquasecurity.github.io/trivy-repo/deb bionic main | tee -a /etc/apt/sources.list.d/trivy.list
-      - apt-get update
-      - apt-get install -y trivy
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --region ${AWS_REGION} --no-include-email) 
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)

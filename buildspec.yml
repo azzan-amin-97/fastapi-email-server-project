@@ -1,10 +1,19 @@
 version: 0.2
 
+env:
+  secrets-manager:
+    DOCKER_USERNAME: third_party_tokens:docker_hub_username
+    DOCKER_TOKEN: third_party_tokens:docker_hub_token
 phases:
+  install:
+    runtime-versions:
+      docker: 18
   pre_build:
     commands:
+      - echo docker version
+      - docker -v
       - echo Logging in to DockerHub...
-      - docker login -u $dockerhub_username -p $dockerhub_password
+      - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_TOKEN}
       - REPOSITORY_URI=$ecr_uri
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}

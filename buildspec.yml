@@ -25,7 +25,7 @@ phases:
       - echo Build started on `date`
       - echo Building the Docker image...
       - docker build -t $REPOSITORY_URI:latest .
-      - trivy --no-progress --exit-code 1 --severity HIGH,CRITICAL $REPOSITORY_URI:latest
+      - trivy image --exit-code 1 --severity HIGH,CRITICAL $REPOSITORY_URI:latest --no-progress 
       - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:

@@ -1,5 +1,4 @@
 version: 0.2
-
 env:
   secrets-manager:
     DOCKER_USERNAME: third_party_tokens:docker_hub_username
@@ -7,23 +6,27 @@ env:
 phases:
   install:
     runtime-versions:
-      docker: 18
+      docker: 20
   pre_build:
     commands:
       - echo docker version
       - docker -v
+      - TRIVY_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
+      - curl -L "https://github.com/aquasecurity/trivy/releases/download/v${LATEST_VERSION}/trivy_${LATEST_VERSION}_Linux-64bit.rpm" -o trivy.rpm
+      - sudo rpm -Uvh trivy.rpm
       - echo Logging in to Amazon ECR...
-      - $(aws ecr get-login --region ${AWS_REGION} --no-include-email) 
+      - $(aws ecr get-login --region ${AWS_REGION} --no-include-email)
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
-      - echo Logging in to DockerHub...
+      - echo Logging in to DockerHub
       - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_TOKEN}
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-      - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker build -f $DOCKER_FILE -t $REPOSITORY_URI:latest .
+      - trivy --no-progress --exit-code 1 --severity HIGH,CRITICAL $REPOSITORY_URI:latest
+      - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
       - echo Build completed on `date`
@@ -31,7 +34,8 @@ phases:
       - echo $REPOSITORY_URI
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
-      - printf '[{"name":"'${CONTAINER_NAME}'","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo Writing image definition files....
+      - printf '[{"name":"'${CONTAINER_NAME}'","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinition.json
 artifacts:
-    files: imagedefinitions.json
+    files:
+      - imagedefinition.json

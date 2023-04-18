@@ -13,7 +13,7 @@ phases:
       - docker -v
       - TRIVY_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
       - curl -L "https://github.com/aquasecurity/trivy/releases/download/v${LATEST_VERSION}/trivy_${LATEST_VERSION}_Linux-64bit.rpm" -o trivy.rpm
-      - sudo rpm -Uvh trivy.rpm
+      - sudo yum install trivy.rpm -y
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --region ${AWS_REGION} --no-include-email)
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)

@@ -27,8 +27,8 @@ phases:
   post_build:
     commands:
       - echo Build completed on `date`
-      - echo Logging in to Amazon ECR...
       - echo Pushing the Docker images...
+      - echo $REPOSITORY_URI
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...

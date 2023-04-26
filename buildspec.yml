@@ -28,7 +28,8 @@ phases:
       - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
-      - trivy image --exit-code 0 --severity HIGH,CRITICAL $REPOSITORY_URI:latest
+      - TRIVY_OUTPUT=$(trivy --exit-code 0 --severity HIGH,CRITICAL $REPOSITORY_URI:latest)
+      - aws sns publish --topic-arn $TOPIC_ARN --message "${TRIVY_OUTPUT}"
       - echo Build completed on `date`
       - echo Pushing the Docker images...
       - echo $REPOSITORY_URI

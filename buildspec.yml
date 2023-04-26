@@ -1,5 +1,6 @@
 version: 0.2
 env:
+  TRIVY_OUTPUT: ""
   secrets-manager:
     DOCKER_USERNAME: third_party_tokens:docker_hub_username
     DOCKER_TOKEN: third_party_tokens:docker_hub_token

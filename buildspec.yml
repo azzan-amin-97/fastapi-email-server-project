@@ -28,7 +28,7 @@ phases:
       - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
-      - trivy image --exit-code 0 --severity HIGH,CRITICAL --format json $REPOSITORY_URI:latest > trivy_results.json
+      - trivy image --exit-code 1 --severity HIGH,CRITICAL --format json $REPOSITORY_URI:latest > trivy_results.json
       - aws s3 cp trivy_results.json s3://trivy-dev-bucket/trivy_results.json
       - S3_OBJECT_URL=$(aws s3 presign s3://trivy-dev-bucket/trivy_results.json --expires-in 86400)
       - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:\n${S3_OBJECT_URL}"

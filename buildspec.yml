@@ -31,7 +31,7 @@ phases:
       - trivy image --exit-code 0 --severity HIGH,CRITICAL --format json $REPOSITORY_URI:latest > $IMAGE_TAG.json
       - aws s3 cp $IMAGE_TAG.json s3://trivy-dev-bucket/$IMAGE_TAG.json
       - S3_OBJECT_URL=$(aws s3 presign s3://trivy-dev-bucket/$IMAGE_TAG.json --expires-in 86400)
-      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:\n${S3_OBJECT_URL}"
+      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:"
       - echo Build completed on `date`
       - echo Pushing the Docker images...
       - echo $REPOSITORY_URI

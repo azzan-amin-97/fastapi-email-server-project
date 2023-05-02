@@ -1,44 +1,38 @@
 version: 0.2
-env:
-  secrets-manager:
-    DOCKER_USERNAME: third_party_tokens:docker_hub_username
-    DOCKER_TOKEN: third_party_tokens:docker_hub_token
+
 phases:
-  install:
-    runtime-versions:
-      docker: 19
   pre_build:
     commands:
-      - echo docker version
-      - docker -v
-      - LATEST_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
-      - curl -L "https://github.com/aquasecurity/trivy/releases/download/v${LATEST_VERSION}/trivy_${LATEST_VERSION}_Linux-64bit.rpm" -o trivy.rpm
-      - sudo yum install trivy.rpm -y
       - echo Logging in to Amazon ECR...
-      - $(aws ecr get-login --region ${AWS_REGION} --no-include-email)
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
-      - echo Logging in to DockerHub
-      - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_TOKEN}
+      - aws --version
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
       - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
+      - echo Build completed on `date`
+
   post_build:
     commands:
       - trivy image --exit-code 0 --severity HIGH,CRITICAL --format json $REPOSITORY_URI:latest > $IMAGE_TAG.json
-      - aws s3 cp $IMAGE_TAG.json s3://trivy-dev-bucket/$IMAGE_TAG.json
-      - S3_OBJECT_URL=$(aws s3 presign s3://trivy-dev-bucket/$IMAGE_TAG.json --expires-in 86400)
-      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:\n${S3_OBJECT_URL}"
-      - echo Build completed on `date`
+      - if grep -qE '"Severity": "(HIGH|CRITICAL)"' $IMAGE_TAG.json; then
+          aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan detected critical/high vulnerabilities";
+          exit 1;
+        else
+          aws s3 cp $IMAGE_TAG.json s3://trivy-dev-bucket/$IMAGE_TAG.json;
+          S3_OBJECT_URL=$(aws s3 presign s3://trivy-dev-bucket/$IMAGE_TAG.json --expires-in 86400);
+          aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:\n${S3_OBJECT_URL}";
+        fi
       - echo Pushing the Docker images...
       - echo $REPOSITORY_URI
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definition files....
       - printf '[{"name":"'${CONTAINER_NAME}'","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinition.json
+
 artifacts:
-    files:
-      - imagedefinition.json
+  files:
+    - imagedefinition.json
+  name: image-definition

@@ -13,6 +13,8 @@ phases:
       - docker -v
       - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/setup_trivy.sh .
       - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/trivy_scan.sh .
+      - chmod +x setup_trivy.sh
+      - chmod +x trivy_scan.sh
       - ./setup_trivy.sh
       - ECR...
       - $(aws ecr get-login --echo Logging in to Amazonregion ${AWS_REGION} --no-include-email)

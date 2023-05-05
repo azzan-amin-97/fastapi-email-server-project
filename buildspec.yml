@@ -14,7 +14,7 @@ phases:
       - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/setup_trivy.sh .
       - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/trivy_scan.sh .
       - sudo ./setup_trivy.sh
-      -  ECR...
+      - ECR...
       - $(aws ecr get-login --echo Logging in to Amazonregion ${AWS_REGION} --no-include-email)
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}

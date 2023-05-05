@@ -11,11 +11,11 @@ phases:
     commands:
       - echo docker version
       - docker -v
-      - LATEST_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
-      - curl -L "https://github.com/aquasecurity/trivy/releases/download/v${LATEST_VERSION}/trivy_${LATEST_VERSION}_Linux-64bit.rpm" -o trivy.rpm
-      - sudo yum install trivy.rpm -y
-      - echo Logging in to Amazon ECR...
-      - $(aws ecr get-login --region ${AWS_REGION} --no-include-email)
+      - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/setup_trivy.sh .
+      - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/trivy_scan.sh .
+      - ./setup_trivy.sh
+      -  ECR...
+      - $(aws ecr get-login --echo Logging in to Amazonregion ${AWS_REGION} --no-include-email)
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
       - echo Logging in to DockerHub
@@ -28,10 +28,8 @@ phases:
       - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
-      - trivy image --exit-code 0 --severity HIGH,CRITICAL --format json $REPOSITORY_URI:latest > $IMAGE_TAG.json
-      - aws s3 cp $IMAGE_TAG.json s3://trivy-dev-bucket/$IMAGE_TAG.json
-      - S3_OBJECT_URL=$(aws s3 presign s3://trivy-dev-bucket/$IMAGE_TAG.json --expires-in 86400)
-      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:"
+      - ./trivy_scan.sh $REPOSITORY_URI $IMAGE_TAG $CODEPIPELINE_PIPELINE_NAME
+#      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:"
       - echo Build completed on `date`
       - echo Pushing the Docker images...
       - echo $REPOSITORY_URI

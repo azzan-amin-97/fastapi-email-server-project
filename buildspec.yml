@@ -31,7 +31,7 @@ phases:
   post_build:
     commands:
       - ./trivy_scan.sh $REPOSITORY_URI $IMAGE_TAG $CODEPIPELINE_PIPELINE_NAME
-#      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results:"
+#      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results :"
       - echo Build completed on `date`
       - echo Pushing the Docker images...
       - echo $REPOSITORY_URI

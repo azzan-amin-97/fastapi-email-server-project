@@ -1,0 +1,20 @@
+name: Dependency Check
+
+on:
+  pull_request:
+    branches:
+    - master  # Modify this if your main branch has a different name
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run OWASP Dependency Check
+        uses: docker://owasp/dependency-check:6
+        with:
+          args: --scan .
+

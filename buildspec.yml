@@ -1,29 +1,44 @@
 version: 0.2
-
+env:
+  secrets-manager:
+    DOCKER_USERNAME: third_party_tokens:docker_hub_username
+    DOCKER_TOKEN: third_party_tokens:docker_hub_token
 phases:
+  install:
+    runtime-versions:
+      docker: 19
   pre_build:
     commands:
-      - echo Logging in to DockerHub...
-      - docker login -u $dockerhub_username -p $dockerhub_password
-      - REPOSITORY_URI=$ecr_uri
+      - echo docker version
+      - docker -v
+      - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/setup_trivy.sh .
+      - aws s3 cp s3://eon-deploy-files-dev/devops/trivy/trivy_scan.sh .
+      - chmod +x setup_trivy.sh
+      - chmod +x trivy_scan.sh
+      - ./setup_trivy.sh
+      - echo Logging in to Amazon ECR......
+      - $(aws ecr get-login --region ${AWS_REGION} --no-include-email)
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo Logging in to DockerHub
+      - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_TOKEN}
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
       - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker tag $(docker images --filter=reference=$REPOSITORY_URI:latest --format "{{.ID}}") $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
+      - ./trivy_scan.sh $REPOSITORY_URI $IMAGE_TAG $CODEPIPELINE_PIPELINE_NAME
+#      - aws sns publish --topic-arn $TOPIC_ARN --message "Trivy scan results :"
       - echo Build completed on `date`
-      - echo Logging in to Amazon ECR...
-      - aws --version
-      - aws ecr get-login-password --region region | docker login --username AWS --password-stdin aws_account_id.dkr.ecr.region.amazonaws.com
       - echo Pushing the Docker images...
+      - echo $REPOSITORY_URI
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
-      - printf '[{"name":"'$ecs_container_name'","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo Writing image definition files....
+      - printf '[{"name":"'${CONTAINER_NAME}'","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinition.json
 artifacts:
-    files: imagedefinitions.json
+    files:
+      - imagedefinition.json
